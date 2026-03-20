@@ -1,0 +1,184 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: ${COMPOSE_PROJECT_NAME}_postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  spark-master:
+    image: spark:3.5.7-java17-python3
+    container_name: ${COMPOSE_PROJECT_NAME}_spark_master
+    user: "0:0"
+    command:
+      - /opt/spark/bin/spark-class
+      - org.apache.spark.deploy.master.Master
+      - --host
+      - spark-master
+      - --port
+      - "7077"
+      - --webui-port
+      - "8080"
+    ports:
+      - "7077:7077"
+      - "9090:8080"
+    volumes:
+      - ./spark/apps:/opt/project/apps
+      - ./output:/opt/project/output
+      - ./secrets:/opt/project/secrets:ro
+    restart: unless-stopped
+
+  spark-worker:
+    image: spark:3.5.7-java17-python3
+    container_name: ${COMPOSE_PROJECT_NAME}_spark_worker
+    user: "0:0"
+    depends_on:
+      - spark-master
+    command:
+      - /opt/spark/bin/spark-class
+      - org.apache.spark.deploy.worker.Worker
+      - --webui-port
+      - "8081"
+      - --cores
+      - "2"
+      - --memory
+      - 2G
+      - spark://spark-master:7077
+    ports:
+      - "9091:8081"
+    volumes:
+      - ./spark/apps:/opt/project/apps
+      - ./output:/opt/project/output
+      - ./secrets:/opt/project/secrets:ro
+    restart: unless-stopped
+
+  spark-client:
+    build:
+      context: ./spark
+      dockerfile: Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME}_spark_client
+    user: "0:0"
+    depends_on:
+      - spark-master
+    env_file:
+      - .env
+    command: ["sleep", "infinity"]
+    volumes:
+      - ./spark/apps:/opt/project/apps
+      - ./output:/opt/project/output
+      - ./secrets:/opt/project/secrets:ro
+    restart: unless-stopped
+
+  airflow-init:
+    build:
+      context: ./airflow
+      dockerfile: Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME}_airflow_init
+    depends_on:
+      postgres:
+        condition: service_healthy
+      spark-master:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__HOSTNAME_CALLABLE: socket.gethostname
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_WEBSERVER_SECRET_KEY}
+    command: >
+      bash -lc "
+      airflow db migrate &&
+      airflow users create
+      --username ${AIRFLOW_ADMIN_USERNAME}
+      --password ${AIRFLOW_ADMIN_PASSWORD}
+      --firstname Local
+      --lastname Admin
+      --role Admin
+      --email admin@example.com
+      || true
+      "
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./spark/apps:/opt/project/apps
+      - ./output:/opt/project/output
+      - ./secrets:/opt/project/secrets:ro
+
+  airflow-webserver:
+    build:
+      context: ./airflow
+      dockerfile: Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME}_airflow_webserver
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+      spark-master:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__HOSTNAME_CALLABLE: socket.gethostname
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_WEBSERVER_SECRET_KEY}
+      AIRFLOW__WEBSERVER__BASE_URL: http://localhost:8088
+    command: webserver
+    ports:
+      - "8088:8080"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./spark/apps:/opt/project/apps
+      - ./output:/opt/project/output
+      - ./secrets:/opt/project/secrets:ro
+    restart: unless-stopped
+
+  airflow-scheduler:
+    build:
+      context: ./airflow
+      dockerfile: Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME}_airflow_scheduler
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+      spark-master:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__HOSTNAME_CALLABLE: socket.gethostname
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_WEBSERVER_SECRET_KEY}
+      AIRFLOW__WEBSERVER__BASE_URL: http://localhost:8088
+    command: scheduler
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./spark/apps:/opt/project/apps
+      - ./output:/opt/project/output
+      - ./secrets:/opt/project/secrets:ro
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
