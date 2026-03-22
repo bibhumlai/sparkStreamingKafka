@@ -1,0 +1,82 @@
+gcp_project_id = "project-d938e8ef-98b9-4e42-9e8"
+gcp_region     = "us-central1"
+gcp_zone       = "us-central1-a"
+
+vm_name      = "spark-airflow-aiven-vm"
+machine_type = "e2-standard-4"
+ssh_username = "bibhu"
+ssh_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINDEymMAXmNX7MlH2ZlDXeB4tZJUmj54fnj4Figg5B4F gcp-vm"
+
+admin_source_ranges = [
+  "2607:fea8:5fa0:7000:d1d7:13ed:4aa:bc4f/128"
+  # Add your public IPv4 as another /32 if your browser or SSH client reaches the internet over IPv4.
+  # Example: "203.0.113.10/32"
+]
+
+airflow_ui_source_ranges = [
+  "0.0.0.0/0",
+  "::/0"
+]
+
+open_tcp_ports = [
+  "8088"
+]
+
+repo_url    = "https://github.com/bibhumlai/sparkStreamingKafka.git"
+repo_branch = "main"
+
+# Optionally seed Secret Manager with the first secret versions.
+# If you leave these as null, Terraform creates empty secrets and you can add values later
+# from the GCP console or with gcloud before starting the VM service.
+app_env_secret_payload = <<-EOT
+COMPOSE_PROJECT_NAME=spark_airflow_aiven_gcp
+
+AIVEN_KAFKA_BOOTSTRAP_SERVERS=kafka-11100011-bibhumlai-421d.c.aivencloud.com:19376
+AIVEN_KAFKA_TOPIC=logistics_data_gen
+AIVEN_KAFKA_STARTING_OFFSETS=latest
+AIVEN_KAFKA_USERNAME=avnadmin
+AIVEN_KAFKA_PASSWORD=replace-with-kafka-password
+
+AIRFLOW_UID=50000
+AIRFLOW_ADMIN_USERNAME=admin
+AIRFLOW_ADMIN_PASSWORD=replace-with-airflow-password
+AIRFLOW_ADMIN_EMAIL=admin@example.com
+AIRFLOW_FERNET_KEY=replace-with-32-byte-base64-key
+AIRFLOW_WEBSERVER_SECRET_KEY=replace-with-long-random-string
+
+AIVEN_PG_HOST=pg-3433185e-bibhumlai-421d.i.aivencloud.com
+AIVEN_PG_PORT=19363
+AIVEN_PG_DATABASE=defaultdb
+AIVEN_PG_USER=avnadmin
+AIVEN_PG_PASSWORD=replace-with-postgres-password
+AIVEN_PG_TABLE=logistics_stream_events
+EOT
+
+aiven_ca_certificate_pem = <<-EOT
+-----BEGIN CERTIFICATE-----
+MIIETTCCArWgAwIBAgIUSgZWSjYPVt0DTqIhfDga6WvrSfAwDQYJKoZIhvcNAQEM
+BQAwQDE+MDwGA1UEAww1ZDFlMTg1ODQtNzYxMy00NDRjLWJkZjItNDU5NmFhZWI1
+MWU5IEdFTiAxIFByb2plY3QgQ0EwHhcNMjUwNDE1MDIwMTIyWhcNMzUwNDEzMDIw
+MTIyWjBAMT4wPAYDVQQDDDVkMWUxODU4NC03NjEzLTQ0NGMtYmRmMi00NTk2YWFl
+YjUxZTkgR0VOIDEgUHJvamVjdCBDQTCCAaIwDQYJKoZIhvcNAQEBBQADggGPADCC
+AYoCggGBALs1KtEHhCELF0U/YtWYEeOVwFwisUtmsSVP3T3XHnSzJ8nBh13v5tLR
+OtX5xLQp7+FWSB5sTk8lBOEbWiEIW1yETtOut7IfrrQ85gwib/CcO11/rjNR50RZ
+nP+5nTaMuG2alroeKARfNYF6pI/deVAlw7adnxNAfXrvG072c/NYY91gcgwrOAjc
+0LHlFZL0hDZXx8rilq2fwQCzucGJlhLcKRwHo2Omt0dUyvxyQY5rxFW83xZzjv6E
+NRam7GiXTLuHWJicLsp7iWoxCHruj0oxNYMSfeX0LFqgkKX8HQ/vdNf8rcFZHVZV
+4mJVJWomhBRy5py1oEfotZFluXLSBnDmPFl/0fGjiiFc/6z1SjHYu4lwYv0dy52e
+DGsUIYqyl1QMgRhpdyFlcVnVsWWUFb0q7BOUIl17qgrfQb4E2EMMXt4vv0GTVoGZ
+QIASbKm48m9vHV+kD2Bgc9elq9KP9xtjlwUj2FaRu4VdQ8h4YxLuZeNzUBModb6m
+kP0cJvLc+wIDAQABoz8wPTAdBgNVHQ4EFgQUK/66794B3ixiD7+6zezVGocbIXgw
+DwYDVR0TBAgwBgEB/wIBADALBgNVHQ8EBAMCAQYwDQYJKoZIhvcNAQEMBQADggGB
+AFwmw5LU04Ln34okYH/zj0YoYGgz+rkaIUUQmH3fGIketL6x9coRslvgs5prssVU
+XazZriniSV5UL6/D+lTFWUh4xi08DkAY260Ae9giIqsQX9DspEpySuWHsgtG6Gek
+oK/52KdygZ956jOyf7tZw+1qe9YkTf9KZ7lc+Ft3RTN8bH90+AFfTMHD8mR5aUem
+t8p+XonydepKrpNkK8qrc3gBa5PxNNEdp9KLUz0wJ+xTLqaCfZ8SXfZzaQNfNTeq
+8RmoTJk+CnGDTXECP8ONvJVEHJXwqEVbH6HOcDlTZbQ9MFB9ZRDDHRv6jTeEZXuY
+y0im0pEGPKqf9gVBtV5DPv8uhLWB07vBshr/Gj4xDOJTvocLMWpDGL+XUsWTysa1
+yv2oMqjHSpB6XnENl27/gveDwFXc0OcFhM7AU/ARlFoQWx/4sKlOi6FK76CFLRh1
+f/Ctv/1TXkc3/u0pkZKHu3XnHRkOyaoE4a/vMkcz1HCTSQ9JL1aSp2XRn7JNuhxE
+Mw==
+-----END CERTIFICATE-----
+EOT

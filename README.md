@@ -78,3 +78,25 @@ Checkpoint directories are stored under `output/checkpoints`.
 - The sample consumer uses Kafka SSL/TLS with PEM files mounted from `secrets/`.
 - If the topic is empty, the stream will stay idle in continuous mode.
 - If you pasted real credentials into chat, rotate them after setup if you want to keep them private long-term.
+
+## GitHub Actions deployment
+
+This repo includes a GitHub Actions workflow that deploys the latest `main` branch to the GCP VM after each push or merge to `main`.
+
+Files:
+
+- `.github/workflows/deploy-gcp-vm.yml`
+- `deploy/gcp/scripts/redeploy.sh`
+
+Before it can run, add these GitHub repository secrets:
+
+- `GCP_VM_HOST`: the VM external IP or DNS name
+- `GCP_VM_USER`: the Linux SSH user on the VM
+- `GCP_VM_SSH_PRIVATE_KEY`: the private SSH key whose public key is installed on the VM
+
+What the deployment script does on the VM:
+
+- fetches the latest code from `origin/main`
+- refreshes `.env` and `secrets/aiven-ca.pem` from Secret Manager
+- fixes Airflow log/output permissions
+- runs `docker-compose up --build -d`

@@ -106,7 +106,7 @@ services:
       --firstname Local
       --lastname Admin
       --role Admin
-      --email admin@example.com
+      --email ${AIRFLOW_ADMIN_EMAIL:-admin@example.com}
       || true
       "
     volumes:
@@ -137,7 +137,7 @@ services:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
       AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
       AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_WEBSERVER_SECRET_KEY}
-      AIRFLOW__WEBSERVER__BASE_URL: http://localhost:8088
+      AIRFLOW__WEBSERVER__BASE_URL: ${AIRFLOW_BASE_URL:-http://localhost:8088}
     command: webserver
     ports:
       - "8088:8080"
@@ -170,7 +170,7 @@ services:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
       AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
       AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_WEBSERVER_SECRET_KEY}
-      AIRFLOW__WEBSERVER__BASE_URL: http://localhost:8088
+      AIRFLOW__WEBSERVER__BASE_URL: ${AIRFLOW_BASE_URL:-http://localhost:8088}
     command: scheduler
     volumes:
       - ./airflow/dags:/opt/airflow/dags

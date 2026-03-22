@@ -2,3 +2,8 @@
 airflow/logs/
 output/
 secrets/*.pem
+deploy/gcp/terraform/.terraform/
+deploy/gcp/terraform/.terraform.lock.hcl
+deploy/gcp/terraform/terraform.tfstate*
+deploy/gcp/terraform/terraform.tfvars
+deploy/gcp/terraform/*.tfplan
