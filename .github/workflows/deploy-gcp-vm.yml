@@ -31,4 +31,4 @@ jobs:
       - name: Deploy latest code to VM
         run: |
           ssh "${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_HOST }}" \
-            "cd /opt/spark-airflow-aiven-local && sudo bash deploy/gcp/scripts/redeploy.sh"
+            "bash -lc 'cd /opt/spark-airflow-aiven-local && git config --global --add safe.directory /opt/spark-airflow-aiven-local && git fetch --all --prune && git checkout main && git reset --hard origin/main && sudo bash deploy/gcp/scripts/redeploy.sh'"
