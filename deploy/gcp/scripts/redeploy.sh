@@ -43,4 +43,5 @@ if ! grep -q '^AIRFLOW_BASE_URL=' "${APP_DIR}/.env"; then
   echo "AIRFLOW_BASE_URL=http://${external_ip}:8088" >> "${APP_DIR}/.env"
 fi
 
+docker-compose down --remove-orphans || true
 docker-compose up --build -d
